@@ -9,11 +9,13 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 
-from models.common import DetectMultiBackend
-from utils.datasets import IMG_FORMATS, VID_FORMATS
-from utils.general import (LOGGER, check_img_size, check_imshow, non_max_suppression, scale_coords, xyxy2xywh)
-from utils.plots import Annotator, colors
-from utils.torch_utils import select_device, time_sync
+from yolov5_ros.models.common import DetectMultiBackend
+from yolov5_ros.utils.datasets import IMG_FORMATS, VID_FORMATS
+from yolov5_ros.utils.general import (LOGGER, check_img_size, check_imshow, non_max_suppression, scale_coords, xyxy2xywh)
+from yolov5_ros.utils.plots import Annotator, colors
+from yolov5_ros.utils.torch_utils import select_device, time_sync
+
+from yolov5_ros.utils.datasets import letterbox
 
 import rclpy
 from rclpy.node import Node
@@ -56,7 +58,6 @@ class yolov5_demo():
 
         self.s = str()
         
-        self.define_cvBridge()
         self.load_model()
     
     def load_model(self):
@@ -85,39 +86,6 @@ class yolov5_demo():
         self.model.warmup(imgsz=(1 if pt else bs, 3, *imgsz), half=self.half)  # warmup
         self.dt, self.seen = [0.0, 0.0, 0.0], 0
 
-    # by YOLOv5
-    def letterbox(self, im, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True, stride=32):
-        # Resize and pad image while meeting stride-multiple constraints
-        shape = im.shape[:2]  # current shape [height, width]
-        if isinstance(new_shape, int):
-            new_shape = (new_shape, new_shape)
-
-        # Scale ratio (new / old)
-        r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])
-        if not scaleup:  # only scale down, do not scale up (for better val mAP)
-            r = min(r, 1.0)
-
-        # Compute padding
-        ratio = r, r  # width, height ratios
-        new_unpad = int(round(shape[1] * r)), int(round(shape[0] * r))
-        dw, dh = new_shape[1] - new_unpad[0], new_shape[0] - new_unpad[1]  # wh padding
-        if auto:  # minimum rectangle
-            dw, dh = np.mod(dw, stride), np.mod(dh, stride)  # wh padding
-        elif scaleFill:  # stretch
-            dw, dh = 0.0, 0.0
-            new_unpad = (new_shape[1], new_shape[0])
-            ratio = new_shape[1] / shape[1], new_shape[0] / shape[0]  # width, height ratios
-
-        dw /= 2  # divide padding into 2 sides
-        dh /= 2
-
-        if shape[::-1] != new_unpad:  # resize
-            im = cv2.resize(im, new_unpad, interpolation=cv2.INTER_LINEAR)
-        top, bottom = int(round(dh - 0.1)), int(round(dh + 0.1))
-        left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
-        im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
-        return im, ratio, (dw, dh)
-
     # callback ==========================================================================
 
     # return ---------------------------------------
@@ -133,13 +101,11 @@ class yolov5_demo():
         x_max_list = []
         y_max_list = []
 
-        
-
         # im is  NDArray[_SCT@ascontiguousarray
         # im = im.transpose(2, 0, 1)
         self.stride = 32  # stride
         self.img_size = 640
-        img = self.letterbox(image_raw, self.img_size, stride=self.stride)[0]
+        img = letterbox(image_raw, self.img_size, stride=self.stride)[0]
 
         # Convert
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
@@ -218,7 +184,9 @@ class yolov5_ros(Node):
 
         self.bridge = CvBridge()
 
-        self.pub_bbox = self.create_publisher(BoundingBoxes, 'bounding_boxes', 10)
+        self.pub_bbox = self.create_publisher(BoundingBoxes, 'yolov5/bounding_boxes', 10)
+        self.pub_image = self.create_publisher(Image, 'yolov5/image_raw', 10)
+
         self.sub_image = self.create_subscription(Image, 'image_raw', self.image_callback,10)
 
         # parameter
@@ -301,6 +269,8 @@ class yolov5_ros(Node):
 
         msg = self.yolovFive2bboxes_msgs(bboxes=[x_min_list, y_min_list, x_max_list, y_max_list], scores=confidence_list, cls=class_list, img_header=image.header)
         self.pub_bbox.publish(msg)
+
+        self.pub_image.publish(image)
 
         print("start ==================")
         print(class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list)
