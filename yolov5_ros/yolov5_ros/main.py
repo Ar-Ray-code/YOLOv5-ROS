@@ -57,9 +57,9 @@ class yolov5_demo():
         self.dnn = dnn
 
         self.s = str()
-        
+
         self.load_model()
-    
+
     def load_model(self):
         imgsz = (self.imagez_height, self.imagez_width)
 
@@ -83,7 +83,7 @@ class yolov5_demo():
         bs = 1
         self.vid_path, self.vid_writer = [None] * bs, [None] * bs
 
-        self.model.warmup(imgsz=(1 if pt else bs, 3, *imgsz), half=self.half)  # warmup
+        self.model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
         self.dt, self.seen = [0.0, 0.0, 0.0], 0
 
     # callback ==========================================================================
