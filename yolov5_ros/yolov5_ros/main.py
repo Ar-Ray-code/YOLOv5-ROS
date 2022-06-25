@@ -78,7 +78,7 @@ class yolov5_demo():
         # Dataloader
         webcam = True
         if webcam:
-            view_img = check_imshow()
+            # view_img = check_imshow()
             cudnn.benchmark = True
         bs = 1
         self.vid_path, self.vid_writer = [None] * bs, [None] * bs
