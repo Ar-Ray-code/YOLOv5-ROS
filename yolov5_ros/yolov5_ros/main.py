@@ -156,19 +156,20 @@ class yolov5_demo():
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                     save_conf = False
                     line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
-                    if self.view_img:  # Add bbox to image
-                        c = int(cls)  # integer class
-                        label = f'{self.names[c]} {conf:.2f}'
-                        annotator.box_label(xyxy, label, color=colors(c, True))
+                    
+                    # Add bbox to image
+                    c = int(cls)  # integer class
+                    label = f'{self.names[c]} {conf:.2f}'
+                    annotator.box_label(xyxy, label, color=colors(c, True))
 
-                        # print(xyxy, label)
-                        class_list.append(self.names[c])
-                        confidence_list.append(conf)
-                        # tensor to float
-                        x_min_list.append(xyxy[0].item())
-                        y_min_list.append(xyxy[1].item())
-                        x_max_list.append(xyxy[2].item())
-                        y_max_list.append(xyxy[3].item())
+                    # print(xyxy, label)
+                    class_list.append(self.names[c])
+                    confidence_list.append(conf)
+                    # tensor to float
+                    x_min_list.append(xyxy[0].item())
+                    y_min_list.append(xyxy[1].item())
+                    x_max_list.append(xyxy[2].item())
+                    y_max_list.append(xyxy[3].item())
 
             # Stream results
             im0 = annotator.result()
