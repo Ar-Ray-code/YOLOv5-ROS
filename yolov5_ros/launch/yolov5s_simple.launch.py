@@ -27,6 +27,6 @@ def generate_launch_description():
     )
 
     return launch.LaunchDescription([
-        webcam,
+        # webcam,
         yolov5_ros,
     ])

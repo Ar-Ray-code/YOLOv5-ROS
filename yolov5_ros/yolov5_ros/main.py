@@ -177,7 +177,7 @@ class yolov5_demo():
                 cv2.imshow("yolov5", im0)
                 cv2.waitKey(1)  # 1 millisecond
 
-            return class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list
+            return class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list, im0
 
 class yolov5_ros(Node):
     def __init__(self):
@@ -266,12 +266,13 @@ class yolov5_ros(Node):
     def image_callback(self, image:Image):
         image_raw = self.bridge.imgmsg_to_cv2(image, "bgr8")
         # return (class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list)
-        class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list = self.yolov5.image_callback(image_raw)
+        class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list, im0 = self.yolov5.image_callback(image_raw)
 
         msg = self.yolovFive2bboxes_msgs(bboxes=[x_min_list, y_min_list, x_max_list, y_max_list], scores=confidence_list, cls=class_list, img_header=image.header)
         self.pub_bbox.publish(msg)
 
-        self.pub_image.publish(image)
+        output_imgmsg = self.bridge.cv2_to_imgmsg(im0, "bgr8")
+        self.pub_image.publish(output_imgmsg)
 
         print("start ==================")
         print(class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list)
