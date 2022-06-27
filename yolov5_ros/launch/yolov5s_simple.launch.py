@@ -7,22 +7,26 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 def generate_launch_description():
     yolox_ros_share_dir = get_package_share_directory('yolov5_ros')
 
-    webcam = launch_ros.actions.Node(
-        package="v4l2_camera", executable="v4l2_camera_node",
-        parameters=[
-            {"image_size": [640,480]},
-        ],
-    )
+    #webcam = launch_ros.actions.Node(
+    #    package="v4l2_camera", executable="v4l2_camera_node",
+    #    parameters=[
+    #        {"image_size": [640,480]},
+    #    ],
+    #)
 
     yolov5_ros = launch_ros.actions.Node(
         package="yolov5_ros", executable="yolov5_ros",
+        parameters=[
+            {"view_img":False},
+            {"camera_topic":"camera/mat2image_image2mat"}
+        ],
     )
 
-    rqt_graph = launch_ros.actions.Node(
-        package="rqt_graph", executable="rqt_graph",
-    )
+    #rqt_graph = launch_ros.actions.Node(
+    #    package="rqt_graph", executable="rqt_graph",
+    #)
 
     return launch.LaunchDescription([
-        webcam,
+        #webcam,
         yolov5_ros,
     ])

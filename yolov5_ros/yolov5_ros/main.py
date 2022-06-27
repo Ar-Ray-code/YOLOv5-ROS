@@ -55,7 +55,6 @@ class yolov5_demo():
         self.line_thickness = line_thickness
         self.half = half
         self.dnn = dnn
-
         self.s = str()
 
         self.load_model()
@@ -176,7 +175,7 @@ class yolov5_demo():
                 cv2.imshow("yolov5", im0)
                 cv2.waitKey(1)  # 1 millisecond
 
-            return class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list
+            return class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list, im0
 
 class yolov5_ros(Node):
     def __init__(self):
@@ -187,8 +186,7 @@ class yolov5_ros(Node):
         self.pub_bbox = self.create_publisher(BoundingBoxes, 'yolov5/bounding_boxes', 10)
         self.pub_image = self.create_publisher(Image, 'yolov5/image_raw', 10)
 
-        self.sub_image = self.create_subscription(Image, 'image_raw', self.image_callback,10)
-
+        
         # parameter
         FILE = Path(__file__).resolve()
         ROOT = FILE.parents[0]
@@ -210,6 +208,7 @@ class yolov5_ros(Node):
         self.declare_parameter('line_thickness', 2)
         self.declare_parameter('half', False)
         self.declare_parameter('dnn', False)
+        self.declare_parameter('camera_topic', 'image_raw')
 
         self.weights = self.get_parameter('weights').value
         self.data = self.get_parameter('data').value
@@ -225,6 +224,10 @@ class yolov5_ros(Node):
         self.line_thickness = self.get_parameter('line_thickness').value
         self.half = self.get_parameter('half').value
         self.dnn = self.get_parameter('dnn').value
+        self.camera_topic = self.get_parameter('camera_topic').value
+
+        self.sub_image = self.create_subscription(Image, self.camera_topic, self.image_callback,10)
+
 
         self.yolov5 = yolov5_demo(self.weights,
                                 self.data,
@@ -239,7 +242,8 @@ class yolov5_ros(Node):
                                 self.agnostic_nms,
                                 self.line_thickness,
                                 self.half,
-                                self.dnn)
+                                self.dnn
+                                )
 
     
     def yolovFive2bboxes_msgs(self, bboxes:list, scores:list, cls:list, img_header:Header):
@@ -265,13 +269,15 @@ class yolov5_ros(Node):
     def image_callback(self, image:Image):
         image_raw = self.bridge.imgmsg_to_cv2(image, "bgr8")
         # return (class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list)
-        class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list = self.yolov5.image_callback(image_raw)
+        class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list, im0 = self.yolov5.image_callback(image_raw)
 
         msg = self.yolovFive2bboxes_msgs(bboxes=[x_min_list, y_min_list, x_max_list, y_max_list], scores=confidence_list, cls=class_list, img_header=image.header)
         self.pub_bbox.publish(msg)
 
-        self.pub_image.publish(image)
-
+        output_img = self.bridge.cv2_to_imgmsg(im0, "bgr8")
+        self.pub_image.publish(output_img)
+        #self.pub_image.publish(image)
+        
         print("start ==================")
         print(class_list, confidence_list, x_min_list, y_min_list, x_max_list, y_max_list)
         print("end ====================")
