@@ -6,6 +6,10 @@ This program changes the input of detect.py (ultralytics/yolov5) to `sensor_msgs
 
 <br>
 
+Maybe [this one](https://github.com/Alpaca-zip/ultralytics_ros) is easier to use.
+
+<br>
+
 ## Installation
 
 ```bash
